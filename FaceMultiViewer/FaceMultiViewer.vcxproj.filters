@@ -1,0 +1,119 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="源文件\shader">
+      <UniqueIdentifier>{a8ea6dc1-1f9e-40f6-a087-42b6e5a9be89}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\gui">
+      <UniqueIdentifier>{b2adf7f1-2b01-4aba-8713-5958e6817520}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="glad.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="face_multi_viewer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxml2.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\OpenGL\imgui\imgui_widgets.cpp">
+      <Filter>源文件\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\OpenGL\imgui\imgui_draw.cpp">
+      <Filter>源文件\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\OpenGL\imgui\imgui.cpp">
+      <Filter>源文件\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\OpenGL\imgui\examples\imgui_impl_glfw.cpp">
+      <Filter>源文件\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\OpenGL\imgui\examples\imgui_impl_opengl3.cpp">
+      <Filter>源文件\gui</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="shader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="camera.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="model.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="mesh.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="tinyxml2.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="file_utils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="data_manager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="render_manager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="texture.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="face.vs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="face.fs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="cam.fs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="cam.vs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="cursor.vs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="cursor.fs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="quad.vs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="quad.fs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="points.fs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="points.vs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="line.vs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="line.fs">
+      <Filter>源文件\shader</Filter>
+    </None>
+  </ItemGroup>
+</Project>
