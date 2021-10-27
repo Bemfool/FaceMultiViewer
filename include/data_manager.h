@@ -1,11 +1,11 @@
 #ifndef DATA_MANAGER
 #define DATA_MANAGER
 
-#include "file_utils.h"
+#include "utils/file_utils.h"
 #include "model.h"
 #include "render_manager.h"
 #include "texture.h"
-
+#include "config.h"
 #include "tinyxml2.h"
 #include <Eigen/Dense>
 #include <boost/algorithm/string.hpp>
@@ -19,6 +19,14 @@
 namespace fs = std::filesystem;
 using namespace tinyxml2;
 
+const RotateType k_aRotTypes[] = {
+	RotateType_CCW, RotateType_CCW, RotateType_CCW, RotateType_CCW, 
+	RotateType_CCW, RotateType_CW, RotateType_CW, RotateType_CW, 
+	RotateType_CW, RotateType_CW, RotateType_CCW, RotateType_CCW, 
+	RotateType_CCW, RotateType_CCW, RotateType_CCW, RotateType_CCW, 
+	RotateType_CCW, RotateType_CCW, RotateType_CCW, RotateType_CW,
+	RotateType_CW, RotateType_CW, RotateType_CW, RotateType_CW
+};
 
 class DataManager
 {
@@ -30,10 +38,14 @@ public:
 		m_pathXml(m_pathRootDir / "cam.xml"),
 		m_pathModel(m_pathRootDir / "photoscan.ply")
 	{
-		m_model = new Model(m_pathModel.string());
 		loadCamInfo();
 		loadLandmarks();
 		loadTextures();
+	}
+
+	void loadModel()
+	{
+		m_model = new Model(m_pathModel.string());
 	}
 
 	void saveLandmarks(unsigned int iPickedFace) const
@@ -66,6 +78,25 @@ public:
 	std::vector<std::vector<float>>& getLandmarkCoordsSets() { return m_aLandmarkCoordsSets; }
 	const std::vector<Texture>& getTextures() const { return m_aTextures; }
 
+	void bindTextures()
+	{
+		for (auto& tex : m_aTextures)
+		{
+			glGenTextures(1, &tex.id);
+
+			glBindTexture(GL_TEXTURE_2D, tex.id);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex.width, tex.height, 0, GL_RGB, GL_UNSIGNED_BYTE, tex.data);
+			glGenerateMipmap(GL_TEXTURE_2D);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+			stbi_image_free(tex.data);
+		}
+	}
+
 	fs::path m_pathRootDir;
 	fs::path m_pathLandmarkDir;
 	fs::path m_pathPhotoDir;
@@ -93,6 +124,8 @@ private:
 
 	int loadCamInfo()
 	{
+		std::cout << "Load camera information." << std::endl;
+
 		Eigen::Matrix4f T_model = Eigen::Matrix4f::Identity();
 
 		m_aProjMatrices.clear();
@@ -273,6 +306,8 @@ private:
 
 	void loadLandmarks()
 	{
+		std::cout << "Load landmarks." << std::endl;
+
 		m_aLandmarkCoordsSets.resize(m_nFaces);
 		std::filesystem::path path(m_pathLandmarkDir);
 
@@ -313,24 +348,15 @@ private:
 
 	void loadTextures()
 	{
-		m_aTextures.resize(m_nFaces);
-		for (auto iFace = 0; iFace < m_nFaces; iFace++)
+		m_aTextures.resize(N_VIEWS);
+		for (auto i = 0; i < N_VIEWS; i++)
 		{
-			fs::path pathTexture = m_pathPhotoDir / (file_utils::Id2Str(iFace) + ".jpg");
+			fs::path pathTexture = m_pathPhotoDir / (file_utils::Id2Str(i) + ".jpg");
 			std::cout << "Load texture: " << pathTexture.string() << std::endl;
-			m_aTextures[iFace] = Texture::LoadTexture(pathTexture.string());
-			if (!m_aLandmarkCoordsSets[iFace].empty() && 
-				m_aTextures[iFace].getWidth() > m_aTextures[iFace].getHeight())
-			{
-				if (m_aLandmarkCoordsSets[iFace][0] < m_aTextures[iFace].getWidth() * 0.5)
-					m_aTextures[iFace].setRotateType(RotateType_CCW);
-				else
-					m_aTextures[iFace].setRotateType(RotateType_CW);
-			}
-			else
-				m_aTextures[iFace].setRotateType(RotateType_No);
+			m_aTextures[i] = Texture(pathTexture.string());
 		}
 	}
+
 };
 
 

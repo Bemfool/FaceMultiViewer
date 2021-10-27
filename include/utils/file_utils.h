@@ -5,7 +5,7 @@
 
 namespace file_utils
 {
-	std::string Id2Str(unsigned int id)
+	static std::string Id2Str(unsigned int id)
 	{
 		if (id < 10)
 			return "0000000" + std::to_string(id);
@@ -13,7 +13,7 @@ namespace file_utils
 			return "000000" + std::to_string(id);
 	}
 
-	unsigned int Str2Id(std::string str)
+	static unsigned int Str2Id(std::string str)
 	{
 		return std::stoi(str);
 	}

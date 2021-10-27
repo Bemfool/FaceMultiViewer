@@ -12,7 +12,7 @@ float CarryBit;
 uniform int RenderMode;
 uniform float FaceIdx;
 uniform float LandmarkIdx;
-uniform sampler2D tex;
+uniform sampler2D Tex;
 
 uniform vec3 PureColor;
 
@@ -25,7 +25,7 @@ void main()
 	}
 	else if(RenderMode == RenderMode_Texture)
 	{
-		FragColor = texture(tex, TexCoord);
+		FragColor = texture(Tex, TexCoord);
 	}
 	else if(RenderMode == RenderMode_PureColor)
 	{

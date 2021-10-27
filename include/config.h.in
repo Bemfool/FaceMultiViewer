@@ -1,1 +1,26 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#include "utils/file_utils.h"
+#include "utils/math_utils.h"
+
+// Runtime directories
 #cmakedefine SHADER_DIR "@SHADER_DIR@"
+
+// Constants
+const int N_VIEWS = 24;
+const int N_LANDMARKS = 276;
+
+// Alias
+using uByte = unsigned char;
+
+enum RotateType
+{
+	RotateType_Invalid = 0,
+	RotateType_No = 1,
+	RotateType_CW = 2,
+	RotateType_CCW = 3
+};
+
+
+#endif // CONFIG_H

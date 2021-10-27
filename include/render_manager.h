@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 
 #include "shader.h"
+#include "config.h"
 
 #include <string>
 
@@ -87,22 +88,30 @@ public:
 		if (quadVAO == 0)
 		{
 			float quadVertices[] = {
-				// positions        // texture coords
-				// no rotation
+				// Positions        Texture coords
+				// No rotation
 				-1.0f,  1.0f, 1.0f, 0.0f, 0.0f,
 				-1.0f, -1.0f, 1.0f, 0.0f, 1.0f,
 				 1.0f,  1.0f, 1.0f, 1.0f, 0.0f,
 				 1.0f, -1.0f, 1.0f, 1.0f, 1.0f,
-				 // cw
+				
+				 // CW
+				-1.0f,  1.0f, 1.0f, 0.0f, 0.0f,
+				-1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
+				 1.0f,  1.0f, 1.0f, 0.0f, 1.0f,
+
+				-1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
+				 1.0f, -1.0f, 1.0f, 1.0f, 1.0f,
+				 1.0f,  1.0f, 1.0f, 0.0f, 1.0f,
+
+				 // CCW
 				-1.0f,  1.0f, 1.0f, 1.0f, 0.0f,
 				-1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
-				 1.0f,  1.0f, 1.0f, 1.0f, 1.0f,
+				 1.0f,  1.0f, 1.0f, 1.0f, 1.0f,				 
+
+				-1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
 				 1.0f, -1.0f, 1.0f, 0.0f, 1.0f,
-				 // ccw
-				 -1.0f,  1.0f, 1.0f, 1.0f, 1.0f,
-				-1.0f, -1.0f, 1.0f, 0.0f, 1.0f,
-				 1.0f,  1.0f, 1.0f, 1.0f, 0.0f,
-				 1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
+				 1.0f,  1.0f, 1.0f, 1.0f, 1.0f,				 
 			};
 
 			// setup plane VAO
@@ -120,35 +129,9 @@ public:
 		if(rotateType == RotateType_No)
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		else if(rotateType == RotateType_CW)
-			glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
+			glDrawArrays(GL_TRIANGLES, 4, 6);
 		else if(rotateType == RotateType_CCW)
-			glDrawArrays(GL_TRIANGLE_STRIP, 8, 4);
-		glBindVertexArray(0);
-	}
-
-	
-	void RenderCursor()
-	{
-		if (cursorVAO == 0)
-		{
-			float cursorVertices[] = {
-				// no rotation  
-				-1.0f, 0.0f, 0.0f,
-				 1.0f, 0.0f, 0.0f,
-				 0.0f, 1.0f, 0.0f,
-				 0.0f, -1.0f, 0.0f,
-			};
-			// setup plane VAO
-			glGenVertexArrays(1, &cursorVAO);
-			glGenBuffers(1, &cursorVBO);
-			glBindVertexArray(cursorVAO);
-			glBindBuffer(GL_ARRAY_BUFFER, cursorVBO);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(cursorVertices), &cursorVertices, GL_STATIC_DRAW);
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-		}
-		glBindVertexArray(cursorVAO);
-		glDrawArrays(GL_LINES, 0, 4);
+			glDrawArrays(GL_TRIANGLES, 10, 6);
 		glBindVertexArray(0);
 	}
 
@@ -200,8 +183,6 @@ public:
 	/* Vertex Object */
 	unsigned int quadVAO = 0;
 	unsigned int quadVBO;
-	unsigned int cursorVAO = 0;
-	unsigned int cursorVBO;
 	unsigned int cubeVAO = 0;
 	unsigned int cubeVBO;
 	unsigned int pointsVAO = 0;
