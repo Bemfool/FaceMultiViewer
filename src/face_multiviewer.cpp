@@ -66,6 +66,7 @@ bool firstMouse = true;
 // time gap
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+float LDMK_SPEED = 1.f;
 
 // picked
 const unsigned int NO_PICKED_FACE = 255;
@@ -350,7 +351,7 @@ int main()
 
 			// store color
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-			
+
 			if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 			{
 				if (g_iPickedLandmark < itLandmarkCoords->size())
@@ -368,21 +369,18 @@ int main()
 						g_bSelectLandmark = true;
 					}
 
+					std::cout << "Old pos:" << itLandmarkCoords->at(g_iPickedLandmark * 2) << " " << itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) << std::endl;
 					if (k_aRotTypes[g_iPickedView] == RotateType_CCW)
 					{
 						itLandmarkCoords->at(g_iPickedLandmark * 2) = (scrHeight - yCursorPos) / scrHeight * faceWidth;
 						itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) = (xCursorPos - scrWidth * 0.5) * 2.0 / scrWidth * faceHeight;
 					}
-					else if(k_aRotTypes[g_iPickedView] == RotateType_Invalid)
-					{
-						itLandmarkCoords->at(g_iPickedLandmark * 2) = (xCursorPos - scrWidth * 0.5) * 2.0 / scrWidth * faceWidth;
-						itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) = (scrHeight - yCursorPos) / scrHeight * faceHeight;
-					}
 					else
 					{
-						itLandmarkCoords->at(g_iPickedLandmark * 2) = (scrHeight - yCursorPos) / scrHeight * faceWidth;
+						itLandmarkCoords->at(g_iPickedLandmark * 2) = yCursorPos / scrHeight * faceWidth;
 						itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) = (xCursorPos - scrWidth * 0.5) * 2.0 / scrWidth * faceHeight;
 					}
+					std::cout << "New pos:" << itLandmarkCoords->at(g_iPickedLandmark * 2) << " " << itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) << std::endl;
 				}
 			}
 			else if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE && g_bSelectLandmark)
@@ -415,7 +413,7 @@ int main()
 			}
 
 			if (xCursorPos > scrWidth * 0.5 && xCursorPos < scrWidth
-				&& yCursorPos > 0.0 && yCursorPos < scrHeight) // Valid 
+				&& yCursorPos > 0.0 && yCursorPos < scrHeight) // Valid cursor
 			{
 				glReadPixels(xCursorPos, scrHeight - yCursorPos, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, ucScrData);
 				g_iPickedLandmark = ucScrData[1] + ucScrData[2] * 255;
@@ -481,6 +479,32 @@ void ProcessInput(GLFWwindow *window)
 			g_cam.ProcessKeyboard(LEFT, deltaTime);
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 			g_cam.ProcessKeyboard(RIGHT, deltaTime);
+	}
+	else if(g_sceneMode == SceneMode_Detailed)
+	{
+		auto itLandmarkCoords = g_pDataManager->getLandmarkCoordsSets().begin() + g_iPickedView;
+		if (k_aRotTypes[g_iPickedView] == RotateType_CCW)
+		{
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+				itLandmarkCoords->at(g_iPickedLandmark * 2) += LDMK_SPEED;
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+				itLandmarkCoords->at(g_iPickedLandmark * 2) -= LDMK_SPEED;
+			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+				itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) -= LDMK_SPEED;
+			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+				itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) += LDMK_SPEED;
+		}
+		else
+		{
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+				itLandmarkCoords->at(g_iPickedLandmark * 2) -= LDMK_SPEED;
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+				itLandmarkCoords->at(g_iPickedLandmark * 2) += LDMK_SPEED;
+			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+				itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) -= LDMK_SPEED;
+			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+				itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) -= LDMK_SPEED;
+		}
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -691,6 +715,11 @@ bool DrawGui(GLFWwindow* window)
 		ImGui::InputInt("Next Face Id", &g_iPickedView, 1, 100, ImGuiInputTextFlags_CharsDecimal);
 		if(g_iPickedView < 0) g_iPickedView = 0;
 		else if(g_iPickedView > 23) g_iPickedView = 23;
+		ImGui::Text("Current Chosen Landmark Id: %d.", g_iPickedLandmark);
+		ImGui::InputInt("", &g_iPickedLandmark, 1, 100, ImGuiInputTextFlags_CharsDecimal);
+		if(g_iPickedLandmark < 0) g_iPickedLandmark = 0;
+		else if(g_iPickedLandmark == NO_PICKED_LANDMARK) g_iPickedLandmark = NO_PICKED_LANDMARK;
+		else if(g_iPickedLandmark > 275) g_iPickedLandmark = 275;
 
 		ImGui::Text("Hold `Mouse Left Butoon` to change landmark coordinates.");
 		ImGui::Text("If one landmark (original is ");
