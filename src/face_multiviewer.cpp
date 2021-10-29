@@ -307,6 +307,7 @@ int main()
 		else if (g_sceneMode == SceneMode_Detailed)
 		{
 			auto itLandmarkCoords = aLandmarkCoordsSets.begin() + g_iPickedView;
+			std::vector<float> scrPts = PhotoPts2ScrPts(*itLandmarkCoords, faceHeight, faceWidth, k_aRotTypes[g_iPickedView]);
 
 			// Left part: Model
 			glEnable(GL_SCISSOR_TEST);
@@ -342,7 +343,15 @@ int main()
 			glViewport(scrWidth / 2, 0, scrWidth / 2, scrHeight);
 			glScissor(scrWidth / 2, 0, scrWidth / 2, scrHeight);
 	
-			g_mProj = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
+			if(g_bSelectLandmark)
+			{
+				float halfWinSize = 0.15f;
+				float x = scrPts[g_iPickedLandmark * 2];
+				float y = scrPts[g_iPickedLandmark * 2 + 1];
+				g_mProj = glm::ortho(x - halfWinSize, x + halfWinSize, y - halfWinSize, y + halfWinSize, 0.1f, 100.0f);
+			}
+			else
+				g_mProj = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
 			g_mView = glm::lookAt(glm::vec3(0.0, 0.0, 5.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
 			
 			quadShader.use();
@@ -352,93 +361,71 @@ int main()
 			// store color
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-			if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+			if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && g_bSelectLandmark == false)
 			{
-				if (g_iPickedLandmark < itLandmarkCoords->size())
-				{
-					if (g_bSelectLandmark == false)
-					{
-						auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-						struct tm* ptm = localtime(&tt);
-						char date[10] = { 0 };
-						sprintf(date, "[%02d.%02d.%02d] ", (int)ptm->tm_hour, (int)ptm->tm_min, (int)ptm->tm_sec);
-						g_sLog = std::string(date);
-						g_sLog += "(" + std::to_string((int)itLandmarkCoords->at(g_iPickedLandmark * 2))
-							+ "," + std::to_string((int)itLandmarkCoords->at(g_iPickedLandmark * 2 + 1))
-							+ ")->";
-						g_bSelectLandmark = true;
-					}
+				// Color-picking
+				glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-					std::cout << "Old pos:" << itLandmarkCoords->at(g_iPickedLandmark * 2) << " " << itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) << std::endl;
-					if (k_aRotTypes[g_iPickedView] == RotateType_CCW)
+				quadShader.setInt("RenderMode", RenderMode_ColorPicking);
+				quadShader.setFloat("FaceIdx", 0.0f); // Irrelevant
+
+				glm::mat4 quadModel(1.0f);
+				for (int i = 0; i < itLandmarkCoords->size() / 2; ++i)
+				{
+					quadShader.use();
+					glm::mat4 quadModel(1.0f);
+					quadModel = glm::translate(quadModel, glm::vec3(scrPts[i * 2], scrPts[i * 2 + 1], 0.0f));
+					quadModel = glm::scale(quadModel, glm::vec3(0.01f, 0.01f, 1.1f));
+					quadShader.setMat4("Model", quadModel);
+					quadShader.setFloat("LandmarkIdx", static_cast<float>(i));
+					g_pRenderManager->RenderQuad(RotateType_No);
+				}
+
+				if (xCursorPos > scrWidth * 0.5 && xCursorPos < scrWidth
+					&& yCursorPos > 0.0 && yCursorPos < scrHeight) // Valid cursor
+				{
+					glReadPixels(xCursorPos, scrHeight - yCursorPos, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, ucScrData);
+					g_iPickedLandmark = ucScrData[1] + ucScrData[2] * 255;
+					std::cout << (int)ucScrData[0] << " " << (int)ucScrData[1] << " " << (int)ucScrData[2] << std::endl;
+					if (g_iPickedLandmark != NO_PICKED_LANDMARK)	// not background
 					{
-						itLandmarkCoords->at(g_iPickedLandmark * 2) = (scrHeight - yCursorPos) / scrHeight * faceWidth;
-						itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) = (xCursorPos - scrWidth * 0.5) * 2.0 / scrWidth * faceHeight;
-					}
+						std::cout << "Choose Landmark: " << g_iPickedLandmark << std::endl;
+						g_bSelectLandmark = true;
+					} 
 					else
 					{
-						itLandmarkCoords->at(g_iPickedLandmark * 2) = yCursorPos / scrHeight * faceWidth;
-						itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) = (xCursorPos - scrWidth * 0.5) * 2.0 / scrWidth * faceHeight;
+						g_bSelectLandmark = false;
 					}
-					std::cout << "New pos:" << itLandmarkCoords->at(g_iPickedLandmark * 2) << " " << itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) << std::endl;
 				}
 			}
-			else if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE && g_bSelectLandmark)
+			else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 			{
-				g_sLog += "(" + std::to_string((int)itLandmarkCoords->at(g_iPickedLandmark * 2))
-					+ "," + std::to_string((int)itLandmarkCoords->at(g_iPickedLandmark * 2 + 1))
-					+ ")";
-				g_aChangeLog.push_back(g_sLog);
 				g_bSelectLandmark = false;
-			}
-
-			// Color-picking
-			glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-			quadShader.setInt("RenderMode", RenderMode_ColorPicking);
-			quadShader.setFloat("FaceIdx", 0.0f); // Irrelevant
-
-			glm::mat4 quadModel(1.0f);
-			std::vector<float> scrPts = PhotoPts2ScrPts(*itLandmarkCoords, faceHeight, faceWidth, k_aRotTypes[g_iPickedView]);
-			for (int i = 0; i < itLandmarkCoords->size() / 2; ++i)
-			{
-				quadShader.use();
-				glm::mat4 quadModel(1.0f);
-				quadModel = glm::translate(quadModel, glm::vec3(scrPts[i * 2], scrPts[i * 2 + 1], 0.0f));
-				quadModel = glm::scale(quadModel, glm::vec3(0.01f, 0.01f, 1.1f));
-				quadShader.setMat4("Model", quadModel);
-				quadShader.setFloat("LandmarkIdx", static_cast<float>(i));
-				g_pRenderManager->RenderQuad(RotateType_No);
-			}
-
-			if (xCursorPos > scrWidth * 0.5 && xCursorPos < scrWidth
-				&& yCursorPos > 0.0 && yCursorPos < scrHeight) // Valid cursor
-			{
-				glReadPixels(xCursorPos, scrHeight - yCursorPos, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, ucScrData);
-				g_iPickedLandmark = ucScrData[1] + ucScrData[2] * 255;
-				std::cout << (int)ucScrData[0] << " " << (int)ucScrData[1] << " " << (int)ucScrData[2] << std::endl;
-				if (g_iPickedLandmark != NO_PICKED_LANDMARK)	// not background 
-					std::cout << "Choose Landmark: " << g_iPickedLandmark << std::endl;
 			}
 
 			// Draw landmarks
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			quadShader.setInt("RenderMode", RenderMode_PureColor);
+			
+			float pointSize = g_bSelectLandmark ? 0.001f : 0.008f;
 			for (int i = 0; i < itLandmarkCoords->size() / 2; ++i)
 			{
 				glm::mat4 quadModel(1.0f);
 				quadModel = glm::translate(quadModel, glm::vec3(scrPts[i * 2], scrPts[i * 2 + 1], 0.0f));
-				quadModel = glm::scale(quadModel, glm::vec3(0.01f, 0.01f, 1.1f));
-				quadShader.setMat4("Model", quadModel);
+
 				if (g_iPickedLandmark == i)
 				{
+					quadModel = glm::scale(quadModel, glm::vec3(pointSize, pointSize, 1.2f));
+					quadShader.setMat4("Model", quadModel);
 					quadShader.setVec3("PureColor", PICKED_LANDMARK_COLOR);
 					g_pRenderManager->RenderQuad(RotateType_No);
 				}
 				else
 				{
+					quadModel = glm::scale(quadModel, glm::vec3(pointSize, pointSize, 1.1f));
+					quadShader.setMat4("Model", quadModel);
 					quadShader.setVec3("PureColor", LANDMARK_COLOR);
 					g_pRenderManager->RenderQuad(RotateType_No);
 				}
@@ -503,7 +490,7 @@ void ProcessInput(GLFWwindow *window)
 			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 				itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) -= LDMK_SPEED;
 			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-				itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) -= LDMK_SPEED;
+				itLandmarkCoords->at(g_iPickedLandmark * 2 + 1) += LDMK_SPEED;
 		}
 	}
 
