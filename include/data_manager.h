@@ -2,9 +2,9 @@
 #define DATA_MANAGER
 
 #include "utils/file_utils.h"
-#include "model.h"
-#include "render_manager.h"
-#include "texture.h"
+#include "gl/model.h"
+#include "gl/render_manager.h"
+#include "gl/texture.h"
 #include "config.h"
 #include "tinyxml2.h"
 #include <Eigen/Dense>
@@ -20,12 +20,12 @@ namespace fs = std::filesystem;
 using namespace tinyxml2;
 
 const RotateType k_aRotTypes[] = {
-	RotateType_CCW, RotateType_CCW, RotateType_CCW, RotateType_CCW, 
-	RotateType_CCW, RotateType_CW, RotateType_CW, RotateType_CW, 
+	RotateType_CW, RotateType_CW, RotateType_CW, RotateType_CW, 
+	RotateType_CW, RotateType_CCW, RotateType_CCW, RotateType_CW, 
 	RotateType_CW, RotateType_CW, RotateType_CCW, RotateType_CCW, 
 	RotateType_CCW, RotateType_CCW, RotateType_CCW, RotateType_CCW, 
-	RotateType_CCW, RotateType_CCW, RotateType_CCW, RotateType_CW,
-	RotateType_CW, RotateType_CW, RotateType_CW, RotateType_CW
+	RotateType_CCW, RotateType_CW, RotateType_CW, RotateType_CCW,
+	RotateType_CCW, RotateType_CCW, RotateType_CCW, RotateType_CCW
 };
 
 class DataManager
@@ -35,7 +35,7 @@ public:
 		m_pathRootDir(fs::path(rootDir)),
 		m_pathLandmarkDir(m_pathRootDir / "face_landmarks"),
 		m_pathPhotoDir(m_pathRootDir / "image"),
-		m_pathXml(m_pathRootDir / "cam.xml"),
+		m_pathXml(m_pathRootDir / "cam_scale.xml"),
 		m_pathModel(m_pathRootDir / "photoscan.ply")
 	{
 		loadCamInfo();
@@ -46,6 +46,13 @@ public:
 	void loadModel()
 	{
 		m_model = new Model(m_pathModel.string());
+		for(auto& mesh : m_model->meshes)
+		{
+			for(auto& v : mesh.vertices)
+			{
+				v.position_ = v.position_ / static_cast<float>(m_scale);
+			}
+		}
 	}
 
 	void saveLandmarks(unsigned int iPickedFace) const
@@ -83,6 +90,7 @@ public:
 		for (auto& tex : m_aTextures)
 		{
 			glGenTextures(1, &tex.id);
+			std::cout << "Bind texture " << tex.id << std::endl;
 
 			glBindTexture(GL_TEXTURE_2D, tex.id);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex.width, tex.height, 0, GL_RGB, GL_UNSIGNED_BYTE, tex.data);
@@ -111,6 +119,7 @@ public:
 	double m_cy;
 	double m_width;
 	double m_height;
+	double m_scale;
 	unsigned int m_nFaces;
 	std::vector<Eigen::Matrix<float, 3, 4> > m_aProjMatrices;
 	std::vector<Eigen::Matrix<float, 3, 4> > m_aTransMatrices;
@@ -154,32 +163,41 @@ private:
 			XMLElement *xml_transform = chunk->FirstChildElement("transform");
 			if (xml_transform != NULL)
 			{
-				const char* rotationText = xml_transform->FirstChildElement("rotation")->GetText();
-				const char* translationText = xml_transform->FirstChildElement("translation")->GetText();
-
-				char *rotation = const_cast<char *>(rotationText);
-				char *splits;
-				const char *d = " ";
-				splits = strtok(rotation, d);
-				int row = 0, col = 0;
-				while (splits)
+				XMLElement* rot = xml_transform->FirstChildElement("rotation");
+				if(rot)
 				{
-					T_model(row, col) = atof(splits);
-					col++;
-					if (col == 3)
+					const char* rotationText = xml_transform->FirstChildElement("rotation")->GetText();
+					const char* translationText = xml_transform->FirstChildElement("translation")->GetText();
+
+					char *rotation = const_cast<char *>(rotationText);
+					char *splits;
+					const char *d = " ";
+					splits = strtok(rotation, d);
+					int row = 0, col = 0;
+					while (splits)
 					{
-						row++;
-						col = 0;
+						T_model(row, col) = atof(splits);
+						col++;
+						if (col == 3)
+						{
+							row++;
+							col = 0;
+						}
+						splits = strtok(NULL, d);
 					}
-					splits = strtok(NULL, d);
-				}
 
-				char *translation = const_cast<char *>(translationText);
-				splits = strtok(translation, d);
-				for (int i = 0; i < 3; i++)
+					char *translation = const_cast<char *>(translationText);
+					splits = strtok(translation, d);
+					for (int i = 0; i < 3; i++)
+					{
+						T_model(i, 3) = atof(splits);
+						splits = strtok(NULL, d);
+					}
+				}
+				else
 				{
-					T_model(i, 3) = atof(splits);
-					splits = strtok(NULL, d);
+					m_scale = stod(xml_transform->FirstChildElement("scale")->GetText());
+					std::cout << "Scale:" << m_scale << std::endl;
 				}
 			}
 
@@ -352,6 +370,8 @@ private:
 		for (auto i = 0; i < N_VIEWS; i++)
 		{
 			fs::path pathTexture = m_pathPhotoDir / (file_utils::Id2Str(i) + ".jpg");
+			if(!fs::exists(pathTexture))
+				pathTexture = m_pathPhotoDir / (file_utils::Id2Str(i) + ".JPG");
 			std::cout << "Load texture: " << pathTexture.string() << std::endl;
 			m_aTextures[i] = Texture(pathTexture.string());
 		}

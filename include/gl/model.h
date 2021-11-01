@@ -10,8 +10,8 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include "mesh.h"
-#include "shader.h"
+#include "gl/mesh.h"
+#include "gl/shader.h"
 
 #include <string>
 #include <fstream>
@@ -25,7 +25,7 @@ using namespace std;
 class Model
 {
 public:
-	vector<Mesh>    meshes;
+	vector<Mesh> meshes;
 	string directory;
 	bool gammaCorrection;
 
@@ -105,7 +105,7 @@ private:
 			vector.z = mesh->mNormals[i].z;
 			vertex.normal_ = vector;
 
-			glm::vec4 color;
+			glm::vec4 color(1.f, 1.f, 1.f, 1.f);
 			color.x = mesh->mColors[0][i].r;
 			color.y = mesh->mColors[0][i].g;
 			color.z = mesh->mColors[0][i].b;

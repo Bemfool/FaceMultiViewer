@@ -32,6 +32,10 @@ include_directories(${TINYXML_INCLUDE_DIRS})
 # Assimp
 find_package(assimp REQUIRED)
 
+# Boost
+find_package(Boost REQUIRED system filesystem program_options)
+include_directories(${Boost_INCLUDE_DIRS})
+
 # Head files
 include_directories(./include)
 
@@ -49,6 +53,7 @@ add_executable(face_multiviewer
 target_link_libraries(
     face_multiviewer 
     GL glfw3 assimp m Xrandr Xi X11 Xxf86vm pthread dl Xinerama Xcursor
+    ${Boost_LIBRARIES} boost_filesystem boost_program_options
 )
 set_target_properties(face_multiviewer
     PROPERTIES

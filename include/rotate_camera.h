@@ -1,32 +1,17 @@
-#ifndef CAMERA_H
-#define CAMERA_H
+#ifndef ROTATE_CAMERA_H
+#define ROTATE_CAMERA_H
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
-
-// Defines several possible options for camera movement. Used as abstraction 
-// to stay away from window-system specific input methods
-enum CameraMovement {
-	FORWARD,
-	BACKWARD,
-	LEFT,
-	RIGHT
-};
-
-// Default camera values
-const float YAW = -90.0f;
-const float PITCH = 0.0f;
-const float SPEED = 50.f;
-const float SENSITIVITY = 0.01f;
-const float ZOOM = 45.0f;
+#include "camera.h"
 
 
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, 
 // Vectors and Matrices for use in OpenGL
-class Camera
+class RotateCamera
 {
 public:
 	// Camera Attributes
@@ -46,13 +31,13 @@ public:
 	float Zoom;
 
 	// Constructor with vectors
-	Camera(
+	RotateCamera(
 		glm::vec3 position = glm::vec3(0.0f, 0.0f, 800.0f), 
 		glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), 
 		float yaw = YAW, 
 		float pitch = PITCH) : 
 		front(glm::vec3(0.0f, 0.0f, -1.0f)), 
-		movementSpeed(SPEED), 
+		movementSpeed(200.f), 
 		mouseSensitivity(SENSITIVITY), 
 		Zoom(ZOOM)
 	{
@@ -65,7 +50,7 @@ public:
 
 
 	// Constructor with scalar values
-	Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : 
+	RotateCamera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : 
 		front(glm::vec3(0.0f, 0.0f, -1.0f)), movementSpeed(SPEED), mouseSensitivity(SENSITIVITY), Zoom(ZOOM)
 	{
 		pos = glm::vec3(posX, posY, posZ);
@@ -76,7 +61,7 @@ public:
 	}
 
 
-	Camera(const Camera& obj)
+	RotateCamera(const Camera& obj)
 	{
 		pos = obj.pos;
 		front = obj.front;
@@ -104,22 +89,21 @@ public:
 	// Returns the view matrix calculated using Euler Angles and the LookAt Matrix
 	glm::mat4 GetViewMatrix()
 	{
-		return glm::lookAt(pos, pos + front, up);
+		return glm::lookAt(pos, glm::vec3(0.f, 0.f, -5.f), up);
 	}
 
 	// Processes input received from any keyboard-like input system. 
 	// Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
 	void ProcessKeyboard(CameraMovement direction, float deltaTime)
 	{
-		float velocity = movementSpeed * deltaTime;
-		if (direction == FORWARD)
-			pos += front * velocity;
-		if (direction == BACKWARD)
-			pos -= front * velocity;
+		float velocity = 15.f;
+		glm::mat4 rotM(1.f);
 		if (direction == LEFT)
-			pos -= right * velocity;
-		if (direction == RIGHT)
-			pos += right * velocity;
+			rotM = glm::rotate(rotM, -glm::radians(velocity), glm::vec3(0.f, 1.f, 0.f));
+		else if (direction == RIGHT)
+			rotM = glm::rotate(rotM, glm::radians(velocity), glm::vec3(0.f, 1.f, 0.f));
+		glm::vec4 newPos = rotM * glm::vec4(pos, 1.0);
+		pos = glm::vec3(newPos.x, newPos.y, newPos.z);
 	}
 
 	// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -170,4 +154,6 @@ private:
 		up = glm::normalize(glm::cross(right, front));
 	}
 };
-#endif
+
+
+#endif // ROTATE_CAMERA_H

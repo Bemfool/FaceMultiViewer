@@ -12,13 +12,17 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <boost/program_options.hpp>
+
 #include "data_manager.h"
-#include "render_manager.h"
+#include "gl/render_manager.h"
 #include "camera.h"
+#include "rotate_camera.h"
 
 #include <cstring>
 #include <iostream>
 
+namespace bpo = boost::program_options;
 
 enum RenderMode
 {
@@ -57,8 +61,9 @@ const unsigned int SCR_HEIGHT = 600;
 const float LANDMARK_SIZE = 0.002;
 
 // camera
-Camera g_cam;
-Camera g_lastCam = g_cam;
+RotateCamera g_cam;
+RotateCamera g_lastCam = g_cam;
+Camera g_deCam;
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -84,7 +89,7 @@ const glm::vec3 PICKED_LANDMARK_COLOR = YELLOW;
 
 //	DataManager *g_pDataManager = new DataManager("D:/database/face_zzm/project");
 DataManager *g_pDataManager = nullptr;
-RenderManager *g_pRenderManager = nullptr;
+RenderManager *g_pRenderManager = new RenderManager();
 
 glm::mat4 g_mProj;
 glm::mat4 g_mView;
@@ -94,9 +99,40 @@ bool g_bSelectLandmark = false;
 std::vector<std::string> g_aChangeLog;
 std::string g_sLog;
 
-int main()
+
+int main(int argc, char* argv[])
 {
-	g_pDataManager = new DataManager("/home/bemfoo/Data/face_zzm/project");
+	std::string sProjDir;
+    bpo::options_description opt("All options");
+	bpo::variables_map vm;
+
+	opt.add_options()
+		("project,p", bpo::value<std::string>(&sProjDir), "Project root directory")
+		("help,h", "A viewer for facial multiview, used for modifying landmarks.");
+	try
+	{
+		bpo::store(parse_command_line(argc, argv, opt), vm);
+	}
+	catch(...)
+	{
+		std::cerr << "There exists undefined command parameters." << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	bpo::notify(vm); 
+
+	if(vm.count("help"))
+	{
+        std::cout << opt << std::endl;
+		return EXIT_SUCCESS;  
+    }
+
+	if(vm.count("project"))
+	{
+		// "/home/bemfoo/Data/static_face_test/full_head_examples/old_man/project/"
+		// "/home/bemfoo/Data/face_zzm/project/"
+		g_pDataManager = new DataManager(sProjDir);
+	}
 
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -147,7 +183,7 @@ int main()
 
 	g_pDataManager->bindTextures();
 	g_pDataManager->loadModel();
-	g_pRenderManager = new RenderManager();
+	// g_pRenderManager = new RenderManager();
 
 	auto nViews = g_pDataManager->getFaces();
 	const Model *faceModel = g_pDataManager->getModel();
@@ -173,7 +209,7 @@ int main()
 	double invF = 1. / f;
 	double cx = g_pDataManager->getCx();
 	double cy = g_pDataManager->getCy();
-	double faceScale = 1 / f;
+	double faceScale = 1.2 / f;
 
 	quadShader.use();
 	quadShader.setVec3("PureColor", LANDMARK_COLOR);	// mark landmarks as red
@@ -279,7 +315,7 @@ int main()
 			modelShader.use();
 			modelShader.setMat4("Proj", g_mProj);
 			modelShader.setMat4("View", g_mView);
-			modelShader.setVec3("ViewPos", g_cam.Position);
+			modelShader.setVec3("ViewPos", g_cam.pos);
 			faceModel->Draw(modelShader);
 
 			camShader.use();
@@ -306,6 +342,7 @@ int main()
 		}
 		else if (g_sceneMode == SceneMode_Detailed)
 		{
+			g_mView = g_deCam.GetViewMatrix();
 			auto itLandmarkCoords = aLandmarkCoordsSets.begin() + g_iPickedView;
 			std::vector<float> scrPts = PhotoPts2ScrPts(*itLandmarkCoords, faceHeight, faceWidth, k_aRotTypes[g_iPickedView]);
 
@@ -316,13 +353,13 @@ int main()
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			g_mProj = glm::perspective(glm::radians(g_cam.Zoom), (float)scrWidth / (float)scrHeight / 2.f, 0.1f, 500.0f);
+			g_mProj = glm::perspective(glm::radians(g_cam.Zoom), (float)scrWidth / (float)scrHeight / 2.f, 0.1f, 5000.0f);
 			glm::mat4 invProjView = glm::inverse(g_mProj * g_mView);
 
 			modelShader.use();
 			modelShader.setMat4("Proj", g_mProj);
 			modelShader.setMat4("View", g_mView);
-			modelShader.setVec3("ViewPos", g_cam.Position);
+			modelShader.setVec3("ViewPos", g_cam.pos);
 			faceModel->Draw(modelShader);
 
 			if (g_iPickedLandmark < itLandmarkCoords->size())
@@ -455,17 +492,23 @@ int main()
 
 void ProcessInput(GLFWwindow *window)
 {
-	if (g_sceneMode == SceneMode_Overall || 
-		(g_sceneMode == SceneMode_Detailed && glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS))
+	if (g_sceneMode == SceneMode_Overall)
 	{
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			g_cam.ProcessKeyboard(FORWARD, deltaTime);
-		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			g_cam.ProcessKeyboard(BACKWARD, deltaTime);
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 			g_cam.ProcessKeyboard(LEFT, deltaTime);
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 			g_cam.ProcessKeyboard(RIGHT, deltaTime);
+	}
+	else if(g_sceneMode == SceneMode_Detailed && glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+	{
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			g_deCam.ProcessKeyboard(FORWARD, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			g_deCam.ProcessKeyboard(BACKWARD, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			g_deCam.ProcessKeyboard(LEFT, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			g_deCam.ProcessKeyboard(RIGHT, deltaTime);
 	}
 	else if(g_sceneMode == SceneMode_Detailed)
 	{
@@ -521,7 +564,7 @@ void MouseCallback(GLFWwindow* window, double xPos, double yPos)
 
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 	{
-		g_cam.ProcessMouseMovement(xOffset, yOffset);
+		g_deCam.ProcessMouseMovement(xOffset, yOffset);
 	}
 
 	if (g_sceneMode == SceneMode_Overall && glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && g_iPickedView != NO_PICKED_FACE)
@@ -535,6 +578,7 @@ void MouseCallback(GLFWwindow* window, double xPos, double yPos)
 void ScrollCallback(GLFWwindow* window, double xOffset, double yOffset)
 {
 	g_cam.ProcessMouseScroll(yOffset);
+	g_deCam.ProcessMouseScroll(yOffset);
 }
 
 

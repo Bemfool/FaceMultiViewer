@@ -6,7 +6,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <shader.h>
+#include <gl/shader.h>
 
 #include <string>
 #include <vector>
@@ -24,7 +24,7 @@ public:
 class Mesh {
 public:
 	// mesh Data
-	vector<Vertex>       vertices;
+	vector<Vertex> vertices;
 	vector<unsigned int> indices;
 	unsigned int VAO;
 
