@@ -176,6 +176,7 @@ public:
 			glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
 		}
 		glBindVertexArray(lineVAO);
+		glLineWidth(1.5f);
 		glDrawArrays(GL_LINES, 0, 2);
 		glBindVertexArray(0);
 	}

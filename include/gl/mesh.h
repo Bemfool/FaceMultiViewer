@@ -35,7 +35,7 @@ public:
 		this->indices = indices;
 
 		// now that we have all the required data, set the vertex buffers and its attribute pointers.
-		setupMesh();
+		// setupMesh();
 	}
 
 	// render the mesh
@@ -47,7 +47,7 @@ public:
 		glBindVertexArray(0);
 	}
 
-private:
+public:
 	// render data 
 	unsigned int VBO, EBO;
 

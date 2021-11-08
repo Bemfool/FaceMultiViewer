@@ -9,7 +9,9 @@
 
 // Constants
 const int N_VIEWS = 24;
-const int N_LANDMARKS = 276;
+const int N_FACIAL_LDMKS = 276;
+const int N_EAR_LDMKS = 55;
+const int N_LANDMARKS = N_FACIAL_LDMKS + N_EAR_LDMKS;
 
 // Alias
 using uByte = unsigned char;

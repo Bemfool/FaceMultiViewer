@@ -33,7 +33,7 @@ public:
 	// Constructor with vectors
 	RotateCamera(
 		glm::vec3 position = glm::vec3(0.0f, 0.0f, 800.0f), 
-		glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), 
+		glm::vec3 up = glm::vec3(1.0f, 0.0f, 0.0f), 
 		float yaw = YAW, 
 		float pitch = PITCH) : 
 		front(glm::vec3(0.0f, 0.0f, -1.0f)), 
@@ -42,7 +42,7 @@ public:
 		Zoom(ZOOM)
 	{
 		pos = position;
-		worldUp = up;
+		worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 		yaw = yaw;
 		pitch = pitch;
 		updateCameraVectors();
@@ -61,7 +61,7 @@ public:
 	}
 
 
-	RotateCamera(const Camera& obj)
+	RotateCamera(const RotateCamera& obj)
 	{
 		pos = obj.pos;
 		front = obj.front;

@@ -5,7 +5,7 @@ in vec3 Normal;
 in vec3 FragPos;  
 in vec4 Color;
 
-const int NUM_CAMERA = 1;
+const int NUM_CAMERA = 24;
 
 uniform vec3 lightPosArr[NUM_CAMERA]; 
 uniform vec3 ViewPos; 
@@ -17,7 +17,7 @@ void main()
 {
 	vec3 result = vec3(0.0);
 	for(int i = 0; i < NUM_CAMERA; i++)
-		result += CalcPointLight(lightPosArr[i]);
+		result += 1.0 / NUM_CAMERA * CalcPointLight(lightPosArr[i]);
 
     FragColor = vec4(result, 1.0);
 } 
@@ -25,7 +25,7 @@ void main()
 vec3 CalcPointLight(vec3 lightPos)
 {
 	  // ambient
-    float ambientStrength = 0.4;
+    float ambientStrength = 0.2;
     vec3 ambient = ambientStrength * lightColor;
   	
     // diffuse 
@@ -35,7 +35,7 @@ vec3 CalcPointLight(vec3 lightPos)
     vec3 diffuse = diff * lightColor;
     
     // specular
-    float specularStrength = 0.7;
+    float specularStrength = 0.4;
     vec3 viewDir = normalize(ViewPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);  
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);

@@ -15,6 +15,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <chrono>
 
 namespace fs = std::filesystem;
 using namespace tinyxml2;
@@ -33,7 +34,8 @@ class DataManager
 public:
 	DataManager(const std::string &rootDir) :
 		m_pathRootDir(fs::path(rootDir)),
-		m_pathLandmarkDir(m_pathRootDir / "face_landmarks"),
+		m_dirFacialLdmk(m_pathRootDir / "face_landmarks"),
+		m_dirEarLdmk(m_pathRootDir / "ear_landmarks"),
 		m_pathPhotoDir(m_pathRootDir / "image"),
 		m_pathXml(m_pathRootDir / "cam_scale.xml"),
 		m_pathModel(m_pathRootDir / "photoscan.ply")
@@ -53,21 +55,45 @@ public:
 				v.position_ = v.position_ / static_cast<float>(m_scale);
 			}
 		}
+		m_model->setup();
 	}
 
 	void saveLandmarks(unsigned int iPickedFace) const
 	{
 		std::cout << "save landmark from face " << iPickedFace << std::endl;
-		fs::path landmarkFile = m_pathLandmarkDir / (file_utils::Id2Str(iPickedFace) + ".txt");
-		fs::rename(landmarkFile, fs::path(m_pathLandmarkDir / (file_utils::Id2Str(iPickedFace)
-			+ "_" + std::to_string(glfwGetTime()) + ".backup")));
-		std::ofstream out(landmarkFile.string());
+
 		auto landmarkCoords = m_aLandmarkCoordsSets[iPickedFace];
-		for (auto it = landmarkCoords.begin(); it != landmarkCoords.end(); it++)
+		auto now = std::chrono::system_clock::now();
+		time_t tt = std::chrono::system_clock::to_time_t(now);
+		std::string strTime = ctime(&tt);
+		strTime = strTime.substr(4, 3) + "_" + strTime.substr(9, 1) + "_" + strTime.substr(11, 8);
+		fs::path landmarkFile = m_dirFacialLdmk / (file_utils::Id2Str(iPickedFace) + ".txt");
+		if(fs::exists(landmarkFile))
 		{
-			out << std::scientific << std::setprecision(19) << *it << " " << *(++it) << "\n";
+			fs::rename(landmarkFile, fs::path(m_dirFacialLdmk / (file_utils::Id2Str(iPickedFace)
+				+ "_" + strTime + ".backup")));
+			std::ofstream out(landmarkFile.string());
+			for (int i = 0; i < N_FACIAL_LDMKS; ++i)
+			{
+				out << std::scientific << std::setprecision(19) 
+					<< landmarkCoords[i * 2] << " " << landmarkCoords[i * 2 + 1] << "\n";
+			}
+			out.close();
 		}
-		out.close();
+		landmarkFile = m_dirEarLdmk / (file_utils::Id2Str(iPickedFace) + ".txt");
+
+		if(fs::exists(landmarkFile))
+		{
+			fs::rename(landmarkFile, fs::path(m_dirEarLdmk / (file_utils::Id2Str(iPickedFace)
+				+ "_" + strTime + ".backup")));
+			std::ofstream out(landmarkFile.string());
+			for (int i = N_FACIAL_LDMKS; i < N_LANDMARKS; ++i)
+			{
+				out << std::scientific << std::setprecision(19) 
+					<< landmarkCoords[i * 2] << " " << landmarkCoords[i * 2 + 1] << "\n";
+			}
+			out.close();
+		}
 	}
 
 	const Model *getModel() const { return m_model; }
@@ -106,7 +132,8 @@ public:
 	}
 
 	fs::path m_pathRootDir;
-	fs::path m_pathLandmarkDir;
+	fs::path m_dirFacialLdmk;
+	fs::path m_dirEarLdmk;
 	fs::path m_pathPhotoDir;
 	fs::path m_pathModel;
 	fs::path m_pathXml;
@@ -327,41 +354,79 @@ private:
 		std::cout << "Load landmarks." << std::endl;
 
 		m_aLandmarkCoordsSets.resize(m_nFaces);
-		std::filesystem::path path(m_pathLandmarkDir);
+		for(auto& set : m_aLandmarkCoordsSets)
+			set = std::vector<float>(N_LANDMARKS * 2, 0.f);
 
-		if (!std::filesystem::exists(path))
+		if (!std::filesystem::exists(m_dirFacialLdmk))
 		{
-			std::cout << "Error: Path " << m_pathLandmarkDir << " does not exist." << std::endl;
+			std::cout << "Error: Directory " << m_dirFacialLdmk << " does not exist." << std::endl;
 			return;
 		}
 
-		for (std::filesystem::directory_iterator iter(m_pathLandmarkDir); iter != std::filesystem::directory_iterator(); iter++)
+		std::cout << m_dirFacialLdmk << std::endl;
+		for (std::filesystem::directory_iterator it(m_dirFacialLdmk); 
+			it != std::filesystem::directory_iterator(); it++)
 		{
-			if (iter->path().extension() != ".txt")
+			if (it->path().extension() != ".txt")
 				continue;
 
-			unsigned int camera_id = file_utils::Str2Id(iter->path().stem().string());
-			std::string filename = iter->path().string();
-			std::cout << "Load landmarks from: " << filename;
+			std::string filename = it->path().string();
+			std::cout << "Load landmarks from: " << filename << std::endl;
+			unsigned int camera_id = file_utils::Str2Id(it->path().stem().string());
 
 			std::ifstream in(filename);
 			if (!in)
 			{
-				std::cout << "\nError: Can not open " << iter->path().string() << "." << std::endl;
+				std::cout << "\nError: Can not open " << it->path().string() << "." << std::endl;
 				return;
 			}
 			std::string line;
+			int i = 0;
 			while (std::getline(in, line))
 			{
 				if (line.empty() || line == "\n")
 					continue;
 				std::vector<std::string> words;
 				boost::split(words, line, boost::is_any_of(" "));
-				m_aLandmarkCoordsSets[camera_id].push_back(std::stof(words[0]));
-				m_aLandmarkCoordsSets[camera_id].push_back(std::stof(words[1]));
+				m_aLandmarkCoordsSets[camera_id][i * 2] = std::stof(words[0]);
+				m_aLandmarkCoordsSets[camera_id][(i++) * 2 + 1] = std::stof(words[1]);
 			}
-			std::cout << " - " << m_aLandmarkCoordsSets[camera_id].size() << std::endl;
 		}
+
+		if (!std::filesystem::exists(m_dirEarLdmk))
+		{
+			std::cout << "Error: Diretcory " << m_dirEarLdmk << " does not exist." << std::endl;
+			return;
+		}
+
+		for (std::filesystem::directory_iterator it(m_dirEarLdmk); it != std::filesystem::directory_iterator(); it++)
+		{
+			if (it->path().extension() != ".txt")
+				continue;
+
+			unsigned int camera_id = file_utils::Str2Id(it->path().stem().string());
+			std::string filename = it->path().string();
+			std::cout << "Load landmarks from: " << filename << std::endl;
+
+			std::ifstream in(filename);
+			if (!in)
+			{
+				std::cout << "\nError: Can not open " << it->path().string() << "." << std::endl;
+				return;
+			}
+			std::string line;
+			int i = 0;
+			while (std::getline(in, line))
+			{
+				if (line.empty() || line == "\n")
+					continue;
+				std::vector<std::string> words;
+				boost::split(words, line, boost::is_any_of(" "));
+				m_aLandmarkCoordsSets[camera_id][(N_FACIAL_LDMKS + i) * 2] = std::stof(words[0]);
+				m_aLandmarkCoordsSets[camera_id][(N_FACIAL_LDMKS + i++) * 2 + 1] = std::stof(words[1]);
+			}
+		}
+
 	}
 
 	void loadTextures()
