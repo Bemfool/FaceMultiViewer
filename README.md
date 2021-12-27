@@ -2,7 +2,7 @@
 
 Face Multiviwer提供24个视图下与目标模型的可视化显示，并且能够对单视图的二维人脸特征点进行修改并保存。
 
-![face_multiviewer](assets/multiviewer.png "Face Multiviewer")
+![face_multiviewer](https://github.com/Great-Keith/FaceMultiViewer/raw/master/assets/multiviewer.png "Face Multiviewer")
 
 ## 特点
 
