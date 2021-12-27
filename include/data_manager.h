@@ -38,7 +38,7 @@ public:
 		m_dirEarLdmk(m_pathRootDir / "ear_landmarks"),
 		m_pathPhotoDir(m_pathRootDir / "image"),
 		m_pathXml(m_pathRootDir / "cam_scale.xml"),
-		m_pathModel(m_pathRootDir / "photoscan.ply")
+		m_pathModel(m_pathRootDir / "photoscan_scale.ply")
 	{
 		loadCamInfo();
 		loadLandmarks();
@@ -390,6 +390,8 @@ private:
 				boost::split(words, line, boost::is_any_of(" "));
 				m_aLandmarkCoordsSets[camera_id][i * 2] = std::stof(words[0]);
 				m_aLandmarkCoordsSets[camera_id][(i++) * 2 + 1] = std::stof(words[1]);
+				// std::cout << m_aLandmarkCoordsSets[camera_id][(i-1) * 2] << " : " << 
+				// 	m_aLandmarkCoordsSets[camera_id][(i-1) * 2 + 1] << std::endl;
 			}
 		}
 
@@ -405,6 +407,7 @@ private:
 				continue;
 
 			unsigned int camera_id = file_utils::Str2Id(it->path().stem().string());
+			std::cout << "Cam: " << camera_id << std::endl;
 			std::string filename = it->path().string();
 			std::cout << "Load landmarks from: " << filename << std::endl;
 
@@ -426,11 +429,13 @@ private:
 				m_aLandmarkCoordsSets[camera_id][(N_FACIAL_LDMKS + i++) * 2 + 1] = std::stof(words[1]);
 			}
 		}
+		std::cout << "Done" << std::endl;
 
 	}
 
 	void loadTextures()
 	{
+		std::cout << "Load texture" << std::endl;
 		m_aTextures.resize(N_VIEWS);
 		for (auto i = 0; i < N_VIEWS; i++)
 		{

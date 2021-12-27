@@ -115,7 +115,7 @@ private:
 			color.x = mesh->mColors[0][i].r;
 			color.y = mesh->mColors[0][i].g;
 			color.z = mesh->mColors[0][i].b;
-			color.w = mesh->mColors[0][i].a;
+			// color.w = mesh->mColors[0][i].a;
 			//std::cout << color.x << " " << color.y << " " << color.z << " " << color.w << std::endl;
 			vertex.color_ = color;
 

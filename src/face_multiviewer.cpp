@@ -71,7 +71,7 @@ bool firstMouse = true;
 // time gap
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-float LDMK_SPEED = 1.f;
+float LDMK_SPEED = 0.5f;
 
 // picked
 const unsigned int NO_PICKED_FACE = 255;
@@ -205,6 +205,8 @@ int main(int argc, char* argv[])
 	Eigen::Matrix4f matPhotoScale;
 	double faceWidth = g_pDataManager->getWidth();
 	double faceHeight = g_pDataManager->getHeight();
+	std::cout << "View width " << faceWidth << " height " << faceHeight << std::endl;
+
 	double f = g_pDataManager->getF();
 	double invF = 1. / f;
 	double cx = g_pDataManager->getCx();
@@ -442,6 +444,7 @@ int main(int argc, char* argv[])
 			for (int i = 0; i < itLandmarkCoords->size() / 2; ++i)
 			{
 				if(itLandmarkCoords->at(i * 2) == 0.f && itLandmarkCoords->at(i * 2 + 1) == 0.f) continue;
+				// std::cout << scrPts[i * 2] << " : " << scrPts[i * 2 + 1] << std::endl;
 				glm::mat4 quadModel(1.0f);
 				quadModel = glm::translate(quadModel, glm::vec3(scrPts[i * 2], scrPts[i * 2 + 1], 0.0f));
 
@@ -654,6 +657,7 @@ std::vector<float> PhotoPts2ScrPts(const std::vector<float>& photoPts, float hei
 
 		scrPts.push_back(xPos);
 		scrPts.push_back(yPos);
+		// std::cout << photoPts.at(i * 2) << " : " << photoPts.at(i * 2 + 1) << " : " << xPos << " : " << yPos << std::endl; 
 	}
 	return scrPts;
 }
